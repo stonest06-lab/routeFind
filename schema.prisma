@@ -1,0 +1,73 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./myongjimap (1).db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Building {
+  buildingId   String  @id @map("building_id")
+  buildingName String  @map("building_name")
+  floors       Floor[]
+  nodes        Node[]
+
+  @@map("buildings")
+}
+
+model Floor {
+  floorId    String   @id @map("floor_id")
+  buildingId String   @map("building_id")
+  floor      Int
+  floorName  String   @map("floor_name")
+  svgUrl     String?  @map("svg_url")
+  building   Building @relation(fields: [buildingId], references: [buildingId])
+  nodes      Node[]
+
+  @@unique([buildingId, floor])
+  @@map("floors")
+}
+
+model Node {
+  nodeId     Int         @id @default(autoincrement()) @map("node_id")
+  buildingId String      @map("building_id")
+  floorId    String      @map("floor_id")
+  nodeName   String?     @map("node_name")
+  nodeType   String      @map("node_type")
+  x          Float
+  y          Float
+  building   Building    @relation(fields: [buildingId], references: [buildingId])
+  floor      Floor       @relation(fields: [floorId], references: [floorId])
+  classrooms Classroom[]
+  startEdges Edge[]      @relation("StartNode")
+  endEdges   Edge[]      @relation("EndNode")
+
+  @@index([buildingId, floorId], map: "idx_nodes_floor")
+  @@map("nodes")
+}
+
+model Classroom {
+  facilityId     String  @id @map("facility_id")
+  nodeId         Int     @map("node_id")
+  roomNumber     String  @map("room_number")
+  name           String?
+  hasComputerLab Int     @default(0) @map("has_computer_lab")
+  node           Node    @relation(fields: [nodeId], references: [nodeId], onDelete: Cascade)
+
+  @@index([roomNumber], map: "idx_classrooms_room")
+  @@map("classrooms")
+}
+
+model Edge {
+  edgeId      Int   @id @default(autoincrement()) @map("edge_id")
+  startNodeId Int   @map("start_node_id")
+  endNodeId   Int   @map("end_node_id")
+  weight      Float
+  startNode   Node  @relation("StartNode", fields: [startNodeId], references: [nodeId], onDelete: Cascade)
+  endNode     Node  @relation("EndNode", fields: [endNodeId], references: [nodeId], onDelete: Cascade)
+
+  @@unique([startNodeId, endNodeId])
+  @@index([startNodeId], map: "idx_edges_start")
+  @@map("edges")
+}
